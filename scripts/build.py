@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DIST = ROOT / "dist"
 PKG = "./cmd/sdb-mcp"
 BINARY = "sdb-mcp"
+DEFAULT_VERSION = "0.1.0"
 
 # (GOOS, GOARCH) build matrix.
 TARGETS = [
@@ -35,9 +36,10 @@ TARGETS = [
     ("linux", "arm64"),
 ]
 
-# Strip symbol/debug tables for smaller release binaries; -trimpath drops
-# local filesystem paths for reproducible builds.
-LDFLAGS = "-s -w"
+def ldflags(version: str) -> str:
+    # Strip symbol/debug tables for smaller release binaries and inject the
+    # build version into main.version.
+    return f"-s -w -X main.version={version}"
 
 
 def output_name(goos: str, goarch: str) -> str:
@@ -45,13 +47,14 @@ def output_name(goos: str, goarch: str) -> str:
     return f"{BINARY}-{goos}-{goarch}{suffix}"
 
 
-def build(goos: str, goarch: str) -> Path:
+def build(goos: str, goarch: str, version: str) -> Path:
     out = DIST / output_name(goos, goarch)
     env = os.environ.copy()
     # CGO_ENABLED=0 produces static binaries and lets us cross-compile without
     # a per-target C toolchain.
     env.update(GOOS=goos, GOARCH=goarch, CGO_ENABLED="0")
-    cmd = ["go", "build", "-trimpath", "-ldflags", LDFLAGS, "-o", str(out), PKG]
+    # -trimpath drops local filesystem paths for reproducible builds.
+    cmd = ["go", "build", "-trimpath", "-ldflags", ldflags(version), "-o", str(out), PKG]
     print(f"  building {goos}/{goarch} -> dist/{out.name}")
     subprocess.run(cmd, cwd=ROOT, env=env, check=True)
     return out
@@ -82,6 +85,11 @@ def main() -> int:
         action="store_true",
         help="remove dist/ before building",
     )
+    parser.add_argument(
+        "--version",
+        default=DEFAULT_VERSION,
+        help=f"version string injected into the binary (default: {DEFAULT_VERSION})",
+    )
     args = parser.parse_args()
 
     if shutil.which("go") is None:
@@ -99,11 +107,11 @@ def main() -> int:
 
     DIST.mkdir(parents=True, exist_ok=True)
 
-    print(f"building {len(targets)} target(s) into {DIST}")
+    print(f"building {len(targets)} target(s) (version {args.version}) into {DIST}")
     built: list[Path] = []
     for goos, goarch in targets:
         try:
-            built.append(build(goos, goarch))
+            built.append(build(goos, goarch, args.version))
         except subprocess.CalledProcessError as exc:
             print(
                 f"error: build failed for {goos}/{goarch} (exit {exc.returncode})",

@@ -1,2 +1,10 @@
-sdb-mcp
+# Compiled root-level binary from `go build ./cmd/sdb-mcp` (anchored to repo
+# root so it does not match the cmd/sdb-mcp/ source directory).
+/sdb-mcp
+/sdb-mcp.exe
+
+# Cross-compiled release artifacts.
 dist/
+
+# Local API request captures — contain a live auth-token; never commit.
+/sdb-mcp-raw/
