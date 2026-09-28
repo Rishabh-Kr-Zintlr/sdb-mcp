@@ -45,6 +45,19 @@ are required; the rest have defaults.
 Credentials come only from the environment and are never logged. The server
 communicates over stdin/stdout, so all diagnostics go to stderr.
 
+## Install
+
+Requires Go 1.26+ (older Go 1.21+ toolchains will download the required
+version automatically).
+
+```sh
+go install github.com/Rishabh-Kr-Zintlr/sdb-mcp/cmd/sdb-mcp@latest
+```
+
+This places an `sdb-mcp` binary in `$(go env GOPATH)/bin` (usually
+`~/go/bin`, or `%USERPROFILE%\go\bin` on Windows). Make sure that directory is
+on your `PATH`. Pin a release with `@v0.1.0` instead of `@latest`.
+
 ## Build
 
 Cross-compiles for Windows, macOS, and Linux (amd64 + arm64) into `dist/`,
@@ -65,14 +78,16 @@ Development:
 SDB_USERNAME=you SDB_PASSWORD=secret go run ./cmd/sdb-mcp
 ```
 
-MCP client (e.g. Claude Desktop / Claude Code) — point `command` at a built
-binary and supply credentials via `env`:
+MCP client (e.g. Claude Desktop / Claude Code) — point `command` at the
+installed binary (or a built one from `dist/`) and supply credentials via `env`.
+If the client doesn't inherit your shell `PATH`, use the absolute path, e.g.
+`/home/you/go/bin/sdb-mcp`:
 
 ```json
 {
   "mcpServers": {
     "sdb": {
-      "command": "/absolute/path/to/dist/sdb-mcp-<os>-<arch>",
+      "command": "sdb-mcp",
       "env": {
         "SDB_USERNAME": "you",
         "SDB_PASSWORD": "secret"

@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 
 	"github.com/Rishabh-Kr-Zintlr/sdb-mcp/internal/config"
@@ -20,10 +21,26 @@ import (
 )
 
 // version is the build version, overridable at link time via
-// -ldflags "-X main.version=...".
+// -ldflags "-X main.version=...". When left at "dev", resolveVersion falls
+// back to the module version recorded by `go install module@version`.
 var version = "dev"
 
+// resolveVersion returns the link-time version if set, otherwise the main
+// module's version from the embedded build info (e.g. "v0.1.0" for
+// `go install ...@v0.1.0`), otherwise "dev".
+func resolveVersion() string {
+	if version != "dev" {
+		return version
+	}
+	if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" && info.Main.Version != "(devel)" {
+		return info.Main.Version
+	}
+	return version
+}
+
 func main() {
+	version = resolveVersion()
+
 	cfg, err := config.Load(version)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "sdb-mcp: configuration error: %v\n", err)
